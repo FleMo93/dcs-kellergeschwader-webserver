@@ -1,0 +1,15 @@
+{
+    "port": 8080,
+    "statics": "./statics/",
+    "dcsAccount": {
+        "username": "",
+        "password": ""
+    },
+    "servers": [
+        {
+            "id": "",
+            "serverName": "",
+            "serverStatusFile": "C:\\server-status.json"
+        }
+    ]
+}

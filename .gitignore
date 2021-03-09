@@ -1,0 +1,4 @@
+.vscode/
+cmd/statics/
+cmd/__debug_bin
+cmd/config.json
