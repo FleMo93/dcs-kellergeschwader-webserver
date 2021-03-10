@@ -25,10 +25,11 @@ type WebserverConfig struct {
 }
 
 type dcsServerStatus struct {
-	Players     []serverStatus.DCSServerStatusPlayer `json:"players"`
-	MissionName string                               `json:"missionName"`
-	IPAddress   string                               `json:"ipAddress"`
-	Port        string                               `json:"port"`
+	Players         []serverStatus.DCSServerStatusPlayer `json:"players"`
+	MissionName     string                               `json:"missionName"`
+	IPAddress       string                               `json:"ipAddress"`
+	Port            string                               `json:"port"`
+	MissionTimeLeft int                                  `json:"missionTimeLeft"`
 }
 
 type dcsServer struct {
@@ -64,10 +65,11 @@ func apiServers(w http.ResponseWriter, r *http.Request) {
 			}
 
 			dcsServer.ServerStatus = &dcsServerStatus{
-				IPAddress:   edServerStatus.IPADDRESS,
-				MissionName: edServerStatus.MISSIONNAME,
-				Port:        edServerStatus.PORT,
-				Players:     hookServerStatus.Players,
+				IPAddress:       edServerStatus.IPADDRESS,
+				MissionName:     edServerStatus.MISSIONNAME,
+				Port:            edServerStatus.PORT,
+				Players:         hookServerStatus.Players,
+				MissionTimeLeft: hookServerStatus.MissionTimeLeft,
 			}
 		}
 

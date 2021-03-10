@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -31,6 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Println("Server listen on " + strconv.Itoa(config.Port))
 	err = m.StartServer(config)
 
 	if err != nil {
