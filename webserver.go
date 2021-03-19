@@ -26,7 +26,11 @@ type WebserverConfig struct {
 		ServerName       string `json:"serverName"`
 		ServerStatusFile string `json:"serverStatusFile"`
 	} `json:"servers"`
-	TacviewDirectory string `json:"tacviewDirectory"`
+	Tacview *struct {
+		Directory          string `json:"directory"`
+		FromFileTimeOffset int32  `json:"fromFileTimeOffset"`
+		ToFileTimeOffset   int32  `json:"toFileTimeOffset"`
+	} `json:"tacview"`
 }
 
 type dcsServerStatus struct {
@@ -44,25 +48,19 @@ type dcsServer struct {
 	ServerStatus *dcsServerStatus `json:"serverStatus"`
 }
 
-type tacviewFiles struct {
+type tacviewFile struct {
 	Name        string `json:"name"`
 	Link        string `json:"link"`
-	Date        int64  `json:"date"`
+	Time        int64  `json:"time"`
 	MissionName string `json:"missionName"`
 }
 
 type tacviewPlayer struct {
-	PlayerName   string         `json:"playerName"`
-	TacviewFiles []tacviewFiles `json:"TacviewFiles"`
+	PlayerName  string        `json:"playerName"`
+	TacviewFile []tacviewFile `json:"tacviewFile"`
 }
 
 var config WebserverConfig
-
-func tacviewFile(w http.ResponseWriter, r *http.Request) {
-	file := r.RequestURI[12:]
-
-	w.Write([]byte(file))
-}
 
 func getDateFromTacviewFilename(fileName string) (time.Time, error) {
 	dateRegex, err := regexp.Compile(`Tacview-(\d+)-(\d+).*`)
@@ -107,11 +105,27 @@ func getDateFromTacviewFilename(fileName string) (time.Time, error) {
 		}
 	}
 
-	return time.Date(year, time.Month(month), day, hour, minute, seconds, 0, time.UTC), nil
+	return time.Date(year, time.Month(month), day, hour, minute, seconds, 0, time.Local), nil
+}
+
+func getMissionNameFromTacviewFilename(fileName string) (string, error) {
+	missionRegex, err := regexp.Compile(`^Tacview(-|\d)+(.+) \[.*$`)
+	if err != nil {
+		return "", err
+	}
+	missionMatches := missionRegex.FindStringSubmatch(fileName)
+	missionName := ""
+	for index, match := range missionMatches {
+		if index == 2 {
+			missionName = match
+		}
+	}
+
+	return missionName, nil
 }
 
 func tacviewIndex(w http.ResponseWriter, r *http.Request) {
-	playerDirs, err := ioutil.ReadDir(config.TacviewDirectory)
+	playerDirs, err := ioutil.ReadDir(config.Tacview.Directory)
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(500)
@@ -123,20 +137,22 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 	if r.TLS != nil {
 		scheme = "https://"
 	}
+	from := time.Now().Add(time.Hour * time.Duration(-config.Tacview.FromFileTimeOffset))
+	to := time.Now().Add(time.Hour * time.Duration(-config.Tacview.ToFileTimeOffset))
 
 	for _, playerDir := range playerDirs {
 		if !playerDir.IsDir() {
 			continue
 		}
 
-		files, err := ioutil.ReadDir(path.Join(config.TacviewDirectory, playerDir.Name()))
+		files, err := ioutil.ReadDir(path.Join(config.Tacview.Directory, playerDir.Name()))
 		if err != nil {
 			log.Fatal(err)
 			w.WriteHeader(500)
 			return
 		}
+		var playerFiles []tacviewFile
 
-		var playerFiles []tacviewFiles
 		for _, file := range files {
 			sessionTime, err := getDateFromTacviewFilename(file.Name())
 			if err != nil {
@@ -145,17 +161,32 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			playerFiles = append(playerFiles, tacviewFiles{
+			if config.Tacview.FromFileTimeOffset != -1 && sessionTime.Before(from) {
+				continue
+			}
+
+			if config.Tacview.ToFileTimeOffset != -1 && sessionTime.After(to) {
+				continue
+			}
+
+			missionName, err := getMissionNameFromTacviewFilename(file.Name())
+			if err != nil {
+				log.Fatal(err)
+				w.WriteHeader(500)
+				return
+			}
+
+			playerFiles = append(playerFiles, tacviewFile{
 				Name:        file.Name(),
 				Link:        scheme + r.Host + "/api/tacview/" + playerDir.Name() + "/" + file.Name(),
-				Date:        sessionTime.Unix(),
-				MissionName: "",
+				Time:        sessionTime.Unix(),
+				MissionName: missionName,
 			})
 		}
 
 		players = append(players, tacviewPlayer{
-			PlayerName:   playerDir.Name(),
-			TacviewFiles: playerFiles,
+			PlayerName:  playerDir.Name(),
+			TacviewFile: playerFiles,
 		})
 	}
 
@@ -221,9 +252,9 @@ func StartServer(conf WebserverConfig) error {
 	http.Handle("/", http.FileServer(http.Dir(conf.Statics)))
 	http.HandleFunc("/api/servers.json", apiServers)
 
-	if config.TacviewDirectory != "" {
+	if config.Tacview != nil {
 		http.HandleFunc("/api/tacview/index.json", tacviewIndex)
-		http.Handle("/api/tacview/", http.StripPrefix("/api/tacview/", http.FileServer(http.Dir(conf.TacviewDirectory))))
+		http.Handle("/api/tacview/", http.StripPrefix("/api/tacview/", http.FileServer(http.Dir(conf.Tacview.Directory))))
 	}
 
 	err := http.ListenAndServe(":"+strconv.Itoa(config.Port), nil)
