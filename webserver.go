@@ -57,7 +57,7 @@ type tacviewFile struct {
 
 type tacviewPlayer struct {
 	PlayerName  string        `json:"playerName"`
-	TacviewFile []tacviewFile `json:"tacviewFile"`
+	TacviewFile []tacviewFile `json:"tacviewFiles"`
 }
 
 var config WebserverConfig
