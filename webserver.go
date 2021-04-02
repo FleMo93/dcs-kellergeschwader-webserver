@@ -39,6 +39,7 @@ type dcsServerStatus struct {
 	IPAddress       string                               `json:"ipAddress"`
 	Port            string                               `json:"port"`
 	MissionTimeLeft int                                  `json:"missionTimeLeft"`
+	Weather         serverStatus.DCSServerStatusWeather  `json:"weather"`
 }
 
 type dcsServer struct {
@@ -229,6 +230,7 @@ func apiServers(w http.ResponseWriter, r *http.Request) {
 				Port:            edServerStatus.PORT,
 				Players:         hookServerStatus.Players,
 				MissionTimeLeft: hookServerStatus.MissionTimeLeft,
+				Weather:         hookServerStatus.Weather,
 			}
 		}
 
