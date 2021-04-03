@@ -136,7 +136,10 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 
 	players := []tacviewPlayer{}
 	scheme := "http://"
-	if r.TLS != nil {
+	xForwardedProtoHeader := r.Header.Get("X-Forwarded-Proto")
+	if xForwardedProtoHeader != "" {
+		scheme = xForwardedProtoHeader + "://"
+	} else if r.TLS != nil {
 		scheme = "https://"
 	}
 	from := time.Now().Add(time.Hour * time.Duration(-config.Tacview.FromFileTimeOffset))
