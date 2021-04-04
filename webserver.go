@@ -126,12 +126,17 @@ func getMissionNameFromTacviewFilename(fileName string) (string, error) {
 	return missionName, nil
 }
 
-func tacviewIndex(w http.ResponseWriter, r *http.Request) {
+var lastTacviewIndex = []byte{}
+var lastTacviewIndexTimeStamp int64 = 0
+
+func getTacviewIndex(r *http.Request) ([]byte, error) {
+	if time.Now().Unix()-lastTacviewIndexTimeStamp < 300 {
+		return lastTacviewIndex, nil
+	}
+
 	playerDirs, err := ioutil.ReadDir(config.Tacview.Directory)
 	if err != nil {
-		log.Fatal(err)
-		w.WriteHeader(500)
-		return
+		return []byte{}, err
 	}
 
 	players := []tacviewPlayer{}
@@ -152,18 +157,14 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 
 		files, err := ioutil.ReadDir(path.Join(config.Tacview.Directory, playerDir.Name()))
 		if err != nil {
-			log.Fatal(err)
-			w.WriteHeader(500)
-			return
+			return []byte{}, err
 		}
 		var playerFiles []tacviewFile
 
 		for _, file := range files {
 			sessionTime, err := getDateFromTacviewFilename(file.Name())
 			if err != nil {
-				log.Fatal(err)
-				w.WriteHeader(500)
-				return
+				return []byte{}, err
 			}
 
 			if config.Tacview.FromFileTimeOffset != -1 && sessionTime.Before(from) {
@@ -176,9 +177,7 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 
 			missionName, err := getMissionNameFromTacviewFilename(file.Name())
 			if err != nil {
-				log.Fatal(err)
-				w.WriteHeader(500)
-				return
+				return []byte{}, err
 			}
 
 			playerFiles = append(playerFiles, tacviewFile{
@@ -197,15 +196,32 @@ func tacviewIndex(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(players)
 	if err != nil {
+		return []byte{}, err
+	}
+
+	lastTacviewIndex = body
+	lastTacviewIndexTimeStamp = time.Now().Unix()
+	return body, nil
+}
+
+func tacviewIndex(w http.ResponseWriter, r *http.Request) {
+	body, err := getTacviewIndex(r)
+	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(500)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
 }
 
-func apiServers(w http.ResponseWriter, r *http.Request) {
+var lastServerStatus = []byte{}
+var lastServerStatusTimeStamp int64 = 0
+
+func getServerStatus() ([]byte, error) {
+	if time.Now().Unix()-lastServerStatusTimeStamp < 60 {
+		return lastServerStatus, nil
+	}
+
 	var servers []dcsServer
 	for _, server := range config.Servers {
 		dcsServer := dcsServer{
@@ -219,13 +235,11 @@ func apiServers(w http.ResponseWriter, r *http.Request) {
 		if err != nil && err.Error() == "Server not found" {
 			dcsServer.Online = false
 		} else if err != nil {
-			log.Fatal(err)
-			w.WriteHeader(500)
+			return []byte{}, err
 		} else {
 			hookServerStatus, err := serverStatus.ReadServerStatusFile(server.ServerStatusFile)
 			if err != nil {
-				log.Fatal(err)
-				w.WriteHeader(500)
+				return []byte{}, err
 			}
 
 			dcsServer.ServerStatus = &dcsServerStatus{
@@ -243,6 +257,17 @@ func apiServers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := json.Marshal(servers)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	lastServerStatus = body
+	lastServerStatusTimeStamp = time.Now().Unix()
+	return body, nil
+}
+
+func apiServers(w http.ResponseWriter, r *http.Request) {
+	body, err := getServerStatus()
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(500)
