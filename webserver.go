@@ -15,9 +15,10 @@ import (
 
 // WebserverConfig Web server configuration
 type WebserverConfig struct {
-	Port       int    `json:"port"`
-	Statics    string `json:"statics"`
-	DCSAccount struct {
+	Port          int    `json:"port"`
+	Statics       string `json:"statics"`
+	StatisticsDir string `json:"statisticsDirectory"`
+	DCSAccount    struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
@@ -288,6 +289,8 @@ func StartServer(conf WebserverConfig) error {
 		http.HandleFunc("/api/tacview/index.json", tacviewIndex)
 		http.Handle("/api/tacview/", http.StripPrefix("/api/tacview/", http.FileServer(http.Dir(conf.Tacview.Directory))))
 	}
+
+	http.Handle("/api/statistics/", http.StripPrefix("/api/statistics/", http.FileServer(http.Dir(conf.StatisticsDir))))
 
 	err := http.ListenAndServe(":"+strconv.Itoa(config.Port), nil)
 	if err != nil {
