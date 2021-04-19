@@ -10,3 +10,5 @@ github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210310144916-d1
 github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210310144916-d17c95a79d0e/go.mod h1:auDseNdE/gNNDBE8BebI6uuu3cT4acS3qWqw11Dx9to=
 github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210310192837-33468294effc h1:M0turvCTu+CCIZZBITqp4T5xxuWg0IbkWm7yeei5oUI=
 github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210310192837-33468294effc/go.mod h1:auDseNdE/gNNDBE8BebI6uuu3cT4acS3qWqw11Dx9to=
+github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210419193821-b8332501b4e0 h1:8MHe3dW36OB1+YvwyTD7B4XiA0Gww9xwHT9WIR41QZ4=
+github.com/FleMo93/dcs-kellergeschwader-serverstatus-go v0.0.0-20210419193821-b8332501b4e0/go.mod h1:auDseNdE/gNNDBE8BebI6uuu3cT4acS3qWqw11Dx9to=
